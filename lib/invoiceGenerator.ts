@@ -1,5 +1,3 @@
-import { jsPDF } from "jspdf";
-
 export interface InvoiceData {
   id: string;
   invoiceNumber: string;
@@ -87,7 +85,8 @@ function fmt(n: number, currency: string): string {
   return `${sym}${n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function generatePDF(inv: InvoiceData): string {
+export async function generatePDF(inv: InvoiceData): Promise<string> {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;
   const margin = 20;

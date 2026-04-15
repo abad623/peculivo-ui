@@ -16,8 +16,8 @@ export default function InvoicesScreen() {
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [pdfUri, setPdfUri] = useState<string | null>(null);
 
-  const openInvoice = useCallback((inv: InvoiceData) => {
-    const uri = generatePDF(inv);
+  const openInvoice = useCallback(async (inv: InvoiceData) => {
+    const uri = await generatePDF(inv);
     setPdfUri(uri);
     setSelectedInvoice(inv);
   }, []);
