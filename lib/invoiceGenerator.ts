@@ -11,9 +11,99 @@ export interface InvoiceData {
   taxAmount: number;
   total: number;
   currency: string;
+  language: string;
   status: "draft" | "sent" | "paid";
   createdAt: string;
 }
+
+interface I18nLabels {
+  title: string;
+  invoiceNumber: string;
+  date: string;
+  due: string;
+  from: string;
+  billTo: string;
+  companyTag: string;
+  num: string;
+  description: string;
+  amount: string;
+  subtotal: string;
+  tax: string;
+  total: string;
+  paymentTerms: string;
+  bankNote: string;
+}
+
+const LABELS: Record<string, I18nLabels> = {
+  en: {
+    title: "INVOICE",
+    invoiceNumber: "Invoice No.",
+    date: "Date",
+    due: "Due",
+    from: "FROM",
+    billTo: "BILL TO",
+    companyTag: "CRM for European Freelancers",
+    num: "#",
+    description: "DESCRIPTION",
+    amount: "AMOUNT",
+    subtotal: "Subtotal",
+    tax: "Tax",
+    total: "TOTAL",
+    paymentTerms: "Payment Terms: Due within 30 days of invoice date.",
+    bankNote: "Please transfer to the bank account provided separately.",
+  },
+  de: {
+    title: "RECHNUNG",
+    invoiceNumber: "Rechnungsnr.",
+    date: "Datum",
+    due: "Faellig",
+    from: "VON",
+    billTo: "RECHNUNG AN",
+    companyTag: "CRM fuer europaeische Freelancer",
+    num: "Nr.",
+    description: "BESCHREIBUNG",
+    amount: "BETRAG",
+    subtotal: "Zwischensumme",
+    tax: "MwSt.",
+    total: "GESAMT",
+    paymentTerms: "Zahlungsbedingungen: Faellig innerhalb von 30 Tagen nach Rechnungsdatum.",
+    bankNote: "Bitte ueberweisen Sie auf das separat mitgeteilte Bankkonto.",
+  },
+  fr: {
+    title: "FACTURE",
+    invoiceNumber: "Facture No.",
+    date: "Date",
+    due: "Echeance",
+    from: "DE",
+    billTo: "FACTURER A",
+    companyTag: "CRM pour freelances europeens",
+    num: "#",
+    description: "DESCRIPTION",
+    amount: "MONTANT",
+    subtotal: "Sous-total",
+    tax: "TVA",
+    total: "TOTAL",
+    paymentTerms: "Conditions de paiement : Due dans les 30 jours suivant la date de facturation.",
+    bankNote: "Veuillez effectuer le virement sur le compte bancaire communique separement.",
+  },
+  es: {
+    title: "FACTURA",
+    invoiceNumber: "Factura No.",
+    date: "Fecha",
+    due: "Vencimiento",
+    from: "DE",
+    billTo: "FACTURAR A",
+    companyTag: "CRM para freelancers europeos",
+    num: "#",
+    description: "DESCRIPCION",
+    amount: "IMPORTE",
+    subtotal: "Subtotal",
+    tax: "IVA",
+    total: "TOTAL",
+    paymentTerms: "Condiciones de pago: Vencimiento a 30 dias desde la fecha de factura.",
+    bankNote: "Por favor, transfiera a la cuenta bancaria proporcionada por separado.",
+  },
+};
 
 const STORAGE_KEY = "peculivo_invoices";
 
@@ -76,7 +166,8 @@ function parseAmount(raw: string): number {
 }
 
 export function buildInvoiceFromEntities(
-  entities: Record<string, string>
+  entities: Record<string, string>,
+  language: string = "en"
 ): InvoiceData {
   const now = new Date();
   const due = new Date(now);
@@ -114,6 +205,7 @@ export function buildInvoiceFromEntities(
     taxAmount,
     total,
     currency,
+    language,
     status: "draft",
     createdAt: now.toISOString(),
   };
@@ -133,9 +225,11 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   const margin = 20;
   const contentW = W - margin * 2;
   let y = margin;
+  const L = LABELS[inv.language] || LABELS.en;
+  const locale = inv.language === "de" ? "de-DE" : inv.language === "fr" ? "fr-FR" : inv.language === "es" ? "es-ES" : "en-GB";
 
   // Colors
-  const primary = [26, 115, 232] as const; // #1a73e8
+  const primary = [26, 115, 232] as const;
   const dark = [32, 33, 36] as const;
   const gray = [95, 99, 104] as const;
   const lightBg = [245, 247, 250] as const;
@@ -148,13 +242,13 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
-  doc.text("INVOICE", margin, 28);
+  doc.text(L.title, margin, 28);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.text(inv.invoiceNumber, W - margin, 20, { align: "right" });
-  doc.text(`Date: ${inv.date}`, W - margin, 27, { align: "right" });
-  doc.text(`Due: ${inv.dueDate}`, W - margin, 34, { align: "right" });
+  doc.text(`${L.date}: ${new Date(inv.date).toLocaleDateString(locale)}`, W - margin, 27, { align: "right" });
+  doc.text(`${L.due}: ${new Date(inv.dueDate).toLocaleDateString(locale)}`, W - margin, 34, { align: "right" });
 
   y = 60;
 
@@ -162,8 +256,8 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   doc.setTextColor(...gray);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("FROM", margin, y);
-  doc.text("BILL TO", margin + contentW / 2, y);
+  doc.text(L.from, margin, y);
+  doc.text(L.billTo, margin + contentW / 2, y);
 
   y += 6;
   doc.setTextColor(...dark);
@@ -176,7 +270,7 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(...gray);
-  doc.text("CRM for European Freelancers", margin, y);
+  doc.text(L.companyTag, margin, y);
   if (inv.clientEmail) {
     doc.text(inv.clientEmail, margin + contentW / 2, y);
   }
@@ -193,9 +287,9 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   doc.setTextColor(...gray);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("#", margin + 4, y + 7);
-  doc.text("DESCRIPTION", margin + 14, y + 7);
-  doc.text("AMOUNT", margin + contentW - 4, y + 7, { align: "right" });
+  doc.text(L.num, margin + 4, y + 7);
+  doc.text(L.description, margin + 14, y + 7);
+  doc.text(L.amount, margin + contentW - 4, y + 7, { align: "right" });
 
   y += 10;
 
@@ -208,9 +302,7 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
     y += 10;
     doc.text(String(idx + 1), margin + 4, y);
     doc.text(item.description, margin + 14, y);
-    doc.text(fmt(item.amount, inv.currency), margin + contentW - 4, y, {
-      align: "right",
-    });
+    doc.text(fmt(item.amount, inv.currency), margin + contentW - 4, y, { align: "right" });
   });
 
   y += 6;
@@ -223,19 +315,15 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   y += 10;
   doc.setTextColor(...gray);
   doc.setFontSize(10);
-  doc.text("Subtotal", totalsX, y);
+  doc.text(L.subtotal, totalsX, y);
   doc.setTextColor(...dark);
-  doc.text(fmt(inv.subtotal, inv.currency), margin + contentW - 4, y, {
-    align: "right",
-  });
+  doc.text(fmt(inv.subtotal, inv.currency), margin + contentW - 4, y, { align: "right" });
 
   y += 8;
   doc.setTextColor(...gray);
-  doc.text(`Tax (${inv.taxRate}%)`, totalsX, y);
+  doc.text(`${L.tax} (${inv.taxRate}%)`, totalsX, y);
   doc.setTextColor(...dark);
-  doc.text(fmt(inv.taxAmount, inv.currency), margin + contentW - 4, y, {
-    align: "right",
-  });
+  doc.text(fmt(inv.taxAmount, inv.currency), margin + contentW - 4, y, { align: "right" });
 
   y += 4;
   doc.setDrawColor(...lineColor);
@@ -247,23 +335,17 @@ export async function generatePDF(inv: InvoiceData): Promise<string> {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("TOTAL", totalsX, y + 2);
-  doc.text(fmt(inv.total, inv.currency), margin + contentW - 4, y + 2, {
-    align: "right",
-  });
+  doc.text(L.total, totalsX, y + 2);
+  doc.text(fmt(inv.total, inv.currency), margin + contentW - 4, y + 2, { align: "right" });
 
   // ---- Footer ----
   y += 30;
   doc.setTextColor(...gray);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Payment Terms: Due within 30 days of invoice date.", margin, y);
+  doc.text(L.paymentTerms, margin, y);
   y += 5;
-  doc.text(
-    "Please transfer to the bank account provided separately.",
-    margin,
-    y
-  );
+  doc.text(L.bankNote, margin, y);
 
   // Bottom line
   doc.setFillColor(...primary);

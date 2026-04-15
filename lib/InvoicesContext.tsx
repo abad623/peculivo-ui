@@ -9,7 +9,7 @@ import {
 
 interface InvoicesContextValue {
   invoices: InvoiceData[];
-  createInvoice: (entities: Record<string, string>) => InvoiceData;
+  createInvoice: (entities: Record<string, string>, language?: string) => InvoiceData;
   removeInvoice: (id: string) => void;
   refresh: () => void;
 }
@@ -23,8 +23,8 @@ export function InvoicesProvider({ children }: { children: React.ReactNode }) {
     setInvoices(getInvoices());
   }, []);
 
-  const createInvoice = useCallback((entities: Record<string, string>) => {
-    const inv = buildInvoiceFromEntities(entities);
+  const createInvoice = useCallback((entities: Record<string, string>, language?: string) => {
+    const inv = buildInvoiceFromEntities(entities, language);
     const updated = saveInvoice(inv);
     setInvoices(updated);
     return inv;

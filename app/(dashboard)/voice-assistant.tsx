@@ -209,7 +209,7 @@ export default function VoiceAssistantScreen() {
         (i) => i.intent === "GENERATE_INVOICE"
       );
       if (invoiceIntent) {
-        const inv = createInvoice(invoiceIntent.entities);
+        const inv = createInvoice(invoiceIntent.entities, msg.intentData.language);
         addMessage({
           role: "assistant",
           text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
@@ -255,7 +255,7 @@ export default function VoiceAssistantScreen() {
         (i) => i.intent === "GENERATE_INVOICE"
       );
       if (invoiceIntent) {
-        const inv = createInvoice(invoiceIntent.entities);
+        const inv = createInvoice(invoiceIntent.entities, updatedData.language);
         addMessage({
           role: "assistant",
           text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
