@@ -30,7 +30,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
-      router.replace("/dashboard");
+      router.replace("/voice-assistant");
     } catch (e: any) {
       setError(e.message || "Login failed. Please try again.");
     } finally {

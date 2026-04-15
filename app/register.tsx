@@ -45,7 +45,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await signUp(email.trim(), password, fullName.trim() || undefined, lang);
-      router.replace("/dashboard");
+      router.replace("/voice-assistant");
     } catch (e: any) {
       setError(e.message || s.errorGeneric);
     } finally {
