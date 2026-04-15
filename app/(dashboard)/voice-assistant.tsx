@@ -27,6 +27,7 @@ interface ChatMessage {
   intentData?: { intents: IntentItem[]; language: string };
   intentStatus?: "pending" | "confirmed" | "editing";
   transcript?: string; // original transcript that produced this intent
+  detectedLang?: string; // reliable language from Whisper or heuristic
 }
 
 /* ------------------------------------------------------------------ */
@@ -34,6 +35,17 @@ interface ChatMessage {
 /* ------------------------------------------------------------------ */
 
 const uid = () => `m_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+function detectLanguage(text: string): string {
+  const lower = text.toLowerCase();
+  const de = /\b(rechnung|erstelle|fuer|ueber|neue[rns]?|kunde|projekt|stunden|bitte|zahlung|euro|ich habe|gearbeitet|kontakt|erinnere)\b/;
+  const fr = /\b(facture|cr[ée]er|pour|nouveau|client|projet|heures|paiement|euros?|travail[ée]|rappel)\b/;
+  const es = /\b(factura|crear|para|nuevo|cliente|proyecto|horas|pago|euros?|trabajado|recordar)\b/;
+  if (de.test(lower)) return "de";
+  if (fr.test(lower)) return "fr";
+  if (es.test(lower)) return "es";
+  return "en";
+}
 
 const INTENT_COLORS: Record<string, string> = {
   ADD_CONTACT: "#4caf50",
@@ -99,8 +111,9 @@ export default function VoiceAssistantScreen() {
   /* ---------- Process transcript through intent API ---------- */
 
   const processTranscript = useCallback(
-    async (transcript: string) => {
+    async (transcript: string, lang?: string) => {
       setIsProcessing(true);
+      const detectedLang = lang || detectLanguage(transcript);
       const thinkingId = addMessage({
         role: "assistant",
         text: "Analyzing intent...",
@@ -108,11 +121,14 @@ export default function VoiceAssistantScreen() {
 
       try {
         const result = await classifyIntent(transcript);
+        // Override the unreliable model language with Whisper/heuristic detection
+        result.language = detectedLang;
         updateMessage(thinkingId, {
           text: "Here's what I understood:",
           intentData: result,
           intentStatus: "pending",
           transcript,
+          detectedLang,
         });
       } catch (err: any) {
         updateMessage(thinkingId, {
@@ -160,7 +176,7 @@ export default function VoiceAssistantScreen() {
             text: whisperResult.transcript,
             isVoice: true,
           });
-          await processTranscript(whisperResult.transcript);
+          await processTranscript(whisperResult.transcript, whisperResult.language);
         } catch (err: any) {
           updateMessage(transcribingId, {
             text: `Transcription error: ${err.message}`,
@@ -209,7 +225,7 @@ export default function VoiceAssistantScreen() {
         (i) => i.intent === "GENERATE_INVOICE"
       );
       if (invoiceIntent) {
-        const inv = createInvoice(invoiceIntent.entities, msg.intentData.language);
+        const inv = createInvoice(invoiceIntent.entities, msg.detectedLang || msg.intentData.language);
         addMessage({
           role: "assistant",
           text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
@@ -255,7 +271,7 @@ export default function VoiceAssistantScreen() {
         (i) => i.intent === "GENERATE_INVOICE"
       );
       if (invoiceIntent) {
-        const inv = createInvoice(invoiceIntent.entities, updatedData.language);
+        const inv = createInvoice(invoiceIntent.entities, msg.detectedLang || updatedData.language);
         addMessage({
           role: "assistant",
           text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
