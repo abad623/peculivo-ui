@@ -42,6 +42,39 @@ export function deleteInvoice(id: string): InvoiceData[] {
 
 /* ---------- Build invoice from intent entities ---------- */
 
+function findEntity(entities: Record<string, string>, ...keys: string[]): string {
+  // Try exact match first, then case-insensitive partial match
+  for (const k of keys) {
+    if (entities[k]) return entities[k];
+  }
+  const lowerEntries = Object.entries(entities);
+  for (const k of keys) {
+    const found = lowerEntries.find(([key]) => key.toLowerCase().includes(k.toLowerCase()));
+    if (found) return found[1];
+  }
+  return "";
+}
+
+function parseAmount(raw: string): number {
+  if (!raw) return 0;
+  // Strip currency words/symbols: €, $, EUR, Euro, euros, dollars, etc.
+  let cleaned = raw.replace(/[€$£]/g, "").replace(/\b(EUR|Euro|euros?|USD|dollars?|GBP|pounds?)\b/gi, "").trim();
+  // Handle European format: 1.000,50 → 1000.50 or 1.000 → 1000
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(cleaned)) {
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  }
+  // Handle comma as decimal: 1000,50 → 1000.50
+  else if (/^\d+,\d{1,2}$/.test(cleaned)) {
+    cleaned = cleaned.replace(",", ".");
+  }
+  // Handle comma as thousands: 1,000 or 1,000.50
+  else {
+    cleaned = cleaned.replace(/,/g, "");
+  }
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
 export function buildInvoiceFromEntities(
   entities: Record<string, string>
 ): InvoiceData {
@@ -52,27 +85,35 @@ export function buildInvoiceFromEntities(
   const count = getInvoices().length + 1;
   const invoiceNumber = `INV-${String(count).padStart(4, "0")}`;
 
-  const amount = parseFloat(entities.amount || entities.fee || entities.price || "0");
-  const description =
-    entities.reason || entities.description || entities.topic || entities.project || "Services rendered";
-  const taxRate = 19; // EU standard
-  const subtotal = amount || 0;
+  const amountRaw = findEntity(entities, "amount", "fee", "price", "total", "sum", "betrag");
+  const subtotal = parseAmount(amountRaw);
+  const description = findEntity(entities, "project_name", "reason", "description", "topic", "project", "service", "grund", "beschreibung") || "Services rendered";
+  const clientName = findEntity(entities, "contact", "client", "client_name", "name", "kunde", "kontakt") || "Client";
+  const taxRate = 19;
   const taxAmount = Math.round(subtotal * (taxRate / 100) * 100) / 100;
   const total = Math.round((subtotal + taxAmount) * 100) / 100;
+
+  // Detect currency from the raw amount string
+  let currency = "EUR";
+  if (amountRaw) {
+    if (/\$|USD|dollar/i.test(amountRaw)) currency = "USD";
+    else if (/£|GBP|pound/i.test(amountRaw)) currency = "GBP";
+  }
+  if (entities.currency) currency = entities.currency.toUpperCase();
 
   return {
     id: `inv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     invoiceNumber,
     date: now.toISOString().split("T")[0],
     dueDate: due.toISOString().split("T")[0],
-    clientName: entities.contact || entities.client || entities.name || "Client",
+    clientName,
     clientEmail: entities.email,
     items: [{ description, amount: subtotal }],
     subtotal,
     taxRate,
     taxAmount,
     total,
-    currency: entities.currency || "EUR",
+    currency,
     status: "draft",
     createdAt: now.toISOString(),
   };
