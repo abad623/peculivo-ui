@@ -9,9 +9,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/AuthContext";
 import { IntentsProvider } from "@/lib/IntentsContext";
+import { InvoicesProvider } from "@/lib/InvoicesContext";
 
 const NAV_ITEMS = [
   { label: "Voice Assistant", path: "/voice-assistant", icon: "\uD83C\uDF99\uFE0F" },
+  { label: "Invoices", path: "/invoices", icon: "\uD83E\uDDFE" },
   { label: "Airtable", path: "/airtable", icon: "\uD83D\uDCCA" },
 ];
 
@@ -26,6 +28,7 @@ export default function DashboardLayout() {
 
   return (
     <IntentsProvider>
+    <InvoicesProvider>
       <SafeAreaView style={styles.safe}>
         <View style={styles.root}>
           {/* Sidebar */}
@@ -68,6 +71,7 @@ export default function DashboardLayout() {
           </View>
         </View>
       </SafeAreaView>
+    </InvoicesProvider>
     </IntentsProvider>
   );
 }

@@ -13,6 +13,7 @@ import { useVoiceRecorder } from "@/lib/useVoiceRecorder";
 import { transcribeAudio } from "@/lib/whisper";
 import { classifyIntent, IntentItem } from "@/lib/intent";
 import { useIntents } from "@/lib/IntentsContext";
+import { useInvoices } from "@/lib/InvoicesContext";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -70,6 +71,7 @@ export default function VoiceAssistantScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const { isRecording, startRecording, stopRecording } = useVoiceRecorder();
   const { addRecord } = useIntents();
+  const { createInvoice } = useInvoices();
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -202,12 +204,24 @@ export default function VoiceAssistantScreen() {
         "confirmed"
       );
 
-      addMessage({
-        role: "assistant",
-        text: "Saved! The intent has been recorded.",
-      });
+      // Auto-generate invoice if GENERATE_INVOICE intent detected
+      const invoiceIntent = msg.intentData.intents.find(
+        (i) => i.intent === "GENERATE_INVOICE"
+      );
+      if (invoiceIntent) {
+        const inv = createInvoice(invoiceIntent.entities);
+        addMessage({
+          role: "assistant",
+          text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
+        });
+      } else {
+        addMessage({
+          role: "assistant",
+          text: "Saved! The intent has been recorded.",
+        });
+      }
     },
-    [updateMessage, addRecord, addMessage]
+    [updateMessage, addRecord, addMessage, createInvoice]
   );
 
   /* ---------- Edit intent ---------- */
@@ -237,12 +251,23 @@ export default function VoiceAssistantScreen() {
         "edited"
       );
 
-      addMessage({
-        role: "assistant",
-        text: "Saved the edited intent!",
-      });
+      const invoiceIntent = editIntents.find(
+        (i) => i.intent === "GENERATE_INVOICE"
+      );
+      if (invoiceIntent) {
+        const inv = createInvoice(invoiceIntent.entities);
+        addMessage({
+          role: "assistant",
+          text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
+        });
+      } else {
+        addMessage({
+          role: "assistant",
+          text: "Saved the edited intent!",
+        });
+      }
     },
-    [editIntents, updateMessage, addRecord, addMessage]
+    [editIntents, updateMessage, addRecord, addMessage, createInvoice]
   );
 
   const handleCancelEdit = useCallback(
