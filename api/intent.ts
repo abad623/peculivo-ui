@@ -1,24 +1,25 @@
-export const config = { runtime: "edge" };
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(request: Request) {
-  if (request.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+export const config = { maxDuration: 60 };
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const body = await request.json();
+  try {
+    const upstream = await fetch("https://intent.peculivo.com/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": process.env.INTENT_API_KEY ?? "",
+      },
+      body: JSON.stringify(req.body),
+    });
 
-  const upstream = await fetch("https://intent.peculivo.com/api/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": process.env.INTENT_API_KEY ?? "",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await upstream.json();
-  return new Response(JSON.stringify(data), {
-    status: upstream.status,
-    headers: { "Content-Type": "application/json" },
-  });
+    const data = await upstream.json();
+    return res.status(upstream.status).json(data);
+  } catch (err: any) {
+    return res.status(502).json({ error: err.message || "Proxy error" });
+  }
 }

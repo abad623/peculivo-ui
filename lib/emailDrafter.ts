@@ -2,15 +2,9 @@
  * Use the Qwen model (intent API) to draft an email from context.
  */
 
-const DRAFT_SYSTEM = `You are a professional email writer for a European freelancer using Peculivo CRM.
-Write a professional, concise email based on the user's request.
-Match the language of the user's request (German if they spoke German, etc.).
-
-Respond with ONLY valid JSON:
-{"subject": "Email subject line", "body": "Full email body text"}
-
-Keep emails professional but warm. Use appropriate greetings and sign-offs.
-Sign off as the freelancer (don't use a specific name, use "Best regards" or equivalent).`;
+const DRAFT_SYSTEM = `Write a short professional email. Match the user's language. Respond ONLY with JSON:
+{"subject":"subject","body":"email body"}
+Sign off with "Best regards".`;
 
 export interface DraftResult {
   subject: string;
@@ -32,7 +26,7 @@ export async function draftEmail(
         { role: "user", content: prompt },
       ],
       temperature: 0.3,
-      max_tokens: 1024,
+      max_tokens: 512,
     }),
   });
 
