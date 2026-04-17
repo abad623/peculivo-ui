@@ -157,8 +157,8 @@ export default function AirtableScreen() {
                           Intent #{idx + 1}: {intent.intent}
                         </Text>
                         <Text style={s.expandLabel}>Entities:</Text>
-                        {Object.entries(intent.entities).length > 0 ? (
-                          Object.entries(intent.entities).map(([k, v]) => (
+                        {Object.entries(intent.entities || {}).length > 0 ? (
+                          Object.entries(intent.entities || {}).map(([k, v]) => (
                             <View key={k} style={s.expandEntityRow}>
                               <Text style={s.expandEntityKey}>{k}:</Text>
                               <Text style={s.expandEntityVal}>

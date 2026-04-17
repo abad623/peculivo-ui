@@ -235,12 +235,12 @@ export default function VoiceAssistantScreen() {
       const parts: string[] = [];
 
       if (invoiceIntent) {
-        const inv = createInvoice(invoiceIntent.entities, msg.detectedLang || msg.intentData.language);
+        const inv = createInvoice(invoiceIntent.entities || {}, msg.detectedLang || msg.intentData.language);
         parts.push(`Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`);
       }
 
       if (reminderIntent) {
-        const data = buildReminderFromEntities(reminderIntent.entities);
+        const data = buildReminderFromEntities(reminderIntent.entities || {});
         const rem = addReminder(data);
         parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
       }
@@ -289,11 +289,11 @@ export default function VoiceAssistantScreen() {
       const parts: string[] = [];
 
       if (invoiceIntent) {
-        const inv = createInvoice(invoiceIntent.entities, msg.detectedLang || updatedData.language);
+        const inv = createInvoice(invoiceIntent.entities || {}, msg.detectedLang || updatedData.language);
         parts.push(`Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`);
       }
       if (reminderIntent) {
-        const data = buildReminderFromEntities(reminderIntent.entities);
+        const data = buildReminderFromEntities(reminderIntent.entities || {});
         const rem = addReminder(data);
         parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
       }
@@ -371,9 +371,9 @@ export default function VoiceAssistantScreen() {
               </Text>
             </View>
 
-            {Object.entries(intent.entities).length > 0 && (
+            {Object.entries(intent.entities || {}).length > 0 && (
               <View style={s.entities}>
-                {Object.entries(intent.entities).map(([key, val]) => (
+                {Object.entries(intent.entities || {}).map(([key, val]) => (
                   <View key={key} style={s.entityRow}>
                     <Text style={s.entityKey}>{key}:</Text>
                     {isEditing ? (
