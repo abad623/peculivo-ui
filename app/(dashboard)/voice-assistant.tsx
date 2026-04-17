@@ -231,6 +231,15 @@ export default function VoiceAssistantScreen() {
       const reminderIntent = msg.intentData.intents.find(
         (i) => i.intent === "SET_REMINDER"
       );
+      // Detect email request: SEND_INVOICE or transcript mentions email/contact
+      const sendInvoiceIntent = msg.intentData.intents.find(
+        (i) => i.intent === "SEND_INVOICE"
+      );
+      const transcriptLower = (msg.transcript || "").toLowerCase();
+      const isEmailRequest =
+        sendInvoiceIntent ||
+        /\b(send|write|draft|compose|schreib|sende|schick|email|e-mail|mail)\b/i.test(transcriptLower) &&
+        /\b(email|e-mail|mail)\b/i.test(transcriptLower);
 
       const parts: string[] = [];
 
@@ -243,6 +252,24 @@ export default function VoiceAssistantScreen() {
         const data = buildReminderFromEntities(reminderIntent.entities || {});
         const rem = addReminder(data);
         parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
+      }
+
+      if (isEmailRequest) {
+        // Find contact from any intent's entities
+        const allEntities = msg.intentData.intents.reduce(
+          (acc, i) => ({ ...acc, ...(i.entities || {}) }),
+          {} as Record<string, string>
+        );
+        const contact =
+          allEntities.contact || allEntities.client || allEntities.name || "Client";
+        const emailAddr = allEntities.email;
+
+        // Open email composer popup via global function
+        const composer = (globalThis as any).__peculivo_openEmailComposer;
+        if (composer) {
+          composer(contact, msg.transcript || "", emailAddr);
+          parts.push(`Opening email composer for ${contact}...`);
+        }
       }
 
       if (parts.length === 0) {
@@ -286,6 +313,7 @@ export default function VoiceAssistantScreen() {
 
       const invoiceIntent = editIntents.find((i) => i.intent === "GENERATE_INVOICE");
       const reminderIntent = editIntents.find((i) => i.intent === "SET_REMINDER");
+      const sendInvoiceEdit = editIntents.find((i) => i.intent === "SEND_INVOICE");
       const parts: string[] = [];
 
       if (invoiceIntent) {
@@ -297,6 +325,22 @@ export default function VoiceAssistantScreen() {
         const rem = addReminder(data);
         parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
       }
+
+      const transcriptLower2 = (msg.transcript || "").toLowerCase();
+      const isEmailEdit =
+        sendInvoiceEdit ||
+        (/\b(send|write|draft|compose|schreib|sende|schick)\b/.test(transcriptLower2) &&
+         /\b(email|e-mail|mail)\b/.test(transcriptLower2));
+      if (isEmailEdit) {
+        const allEnt = editIntents.reduce((a, i) => ({ ...a, ...(i.entities || {}) }), {} as Record<string, string>);
+        const contact = allEnt.contact || allEnt.client || allEnt.name || "Client";
+        const composer = (globalThis as any).__peculivo_openEmailComposer;
+        if (composer) {
+          composer(contact, msg.transcript || "", allEnt.email);
+          parts.push(`Opening email composer for ${contact}...`);
+        }
+      }
+
       if (parts.length === 0) parts.push("The edited intent has been recorded.");
 
       addMessage({ role: "assistant", text: "Saved! " + parts.join(" ") });
