@@ -15,6 +15,7 @@ import { classifyIntent, IntentItem } from "@/lib/intent";
 import { useIntents } from "@/lib/IntentsContext";
 import { useInvoices } from "@/lib/InvoicesContext";
 import { useReminders } from "@/lib/RemindersContext";
+import { useEmails } from "@/lib/EmailsContext";
 import { buildReminderFromEntities } from "@/lib/reminderParser";
 
 /* ------------------------------------------------------------------ */
@@ -87,6 +88,7 @@ export default function VoiceAssistantScreen() {
   const { addRecord } = useIntents();
   const { createInvoice } = useInvoices();
   const { addReminder } = useReminders();
+  const { openComposer } = useEmails();
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -265,11 +267,8 @@ export default function VoiceAssistantScreen() {
         const emailAddr = allEntities.email;
 
         // Open email composer popup via global function
-        const composer = (globalThis as any).__peculivo_openEmailComposer;
-        if (composer) {
-          composer(contact, msg.transcript || "", emailAddr);
-          parts.push(`Opening email composer for ${contact}...`);
-        }
+        openComposer(contact, msg.transcript || "", emailAddr);
+        parts.push(`Opening email composer for ${contact}...`);
       }
 
       if (parts.length === 0) {
@@ -281,7 +280,7 @@ export default function VoiceAssistantScreen() {
         text: "Saved! " + parts.join(" "),
       });
     },
-    [updateMessage, addRecord, addMessage, createInvoice, addReminder]
+    [updateMessage, addRecord, addMessage, createInvoice, addReminder, openComposer]
   );
 
   /* ---------- Edit intent ---------- */
@@ -334,18 +333,15 @@ export default function VoiceAssistantScreen() {
       if (isEmailEdit) {
         const allEnt = editIntents.reduce((a, i) => ({ ...a, ...(i.entities || {}) }), {} as Record<string, string>);
         const contact = allEnt.contact || allEnt.client || allEnt.name || "Client";
-        const composer = (globalThis as any).__peculivo_openEmailComposer;
-        if (composer) {
-          composer(contact, msg.transcript || "", allEnt.email);
-          parts.push(`Opening email composer for ${contact}...`);
-        }
+        openComposer(contact, msg.transcript || "", allEnt.email);
+        parts.push(`Opening email composer for ${contact}...`);
       }
 
       if (parts.length === 0) parts.push("The edited intent has been recorded.");
 
       addMessage({ role: "assistant", text: "Saved! " + parts.join(" ") });
     },
-    [editIntents, updateMessage, addRecord, addMessage, createInvoice, addReminder]
+    [editIntents, updateMessage, addRecord, addMessage, createInvoice, addReminder, openComposer]
   );
 
   const handleCancelEdit = useCallback(
