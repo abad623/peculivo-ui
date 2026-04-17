@@ -14,6 +14,8 @@ import { transcribeAudio } from "@/lib/whisper";
 import { classifyIntent, IntentItem } from "@/lib/intent";
 import { useIntents } from "@/lib/IntentsContext";
 import { useInvoices } from "@/lib/InvoicesContext";
+import { useReminders } from "@/lib/RemindersContext";
+import { buildReminderFromEntities } from "@/lib/reminderParser";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -84,6 +86,7 @@ export default function VoiceAssistantScreen() {
   const { isRecording, startRecording, stopRecording } = useVoiceRecorder();
   const { addRecord } = useIntents();
   const { createInvoice } = useInvoices();
+  const { addReminder } = useReminders();
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -224,20 +227,34 @@ export default function VoiceAssistantScreen() {
       const invoiceIntent = msg.intentData.intents.find(
         (i) => i.intent === "GENERATE_INVOICE"
       );
+      // Auto-create reminder if SET_REMINDER intent detected
+      const reminderIntent = msg.intentData.intents.find(
+        (i) => i.intent === "SET_REMINDER"
+      );
+
+      const parts: string[] = [];
+
       if (invoiceIntent) {
         const inv = createInvoice(invoiceIntent.entities, msg.detectedLang || msg.intentData.language);
-        addMessage({
-          role: "assistant",
-          text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
-        });
-      } else {
-        addMessage({
-          role: "assistant",
-          text: "Saved! The intent has been recorded.",
-        });
+        parts.push(`Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`);
       }
+
+      if (reminderIntent) {
+        const data = buildReminderFromEntities(reminderIntent.entities);
+        const rem = addReminder(data);
+        parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
+      }
+
+      if (parts.length === 0) {
+        parts.push("The intent has been recorded.");
+      }
+
+      addMessage({
+        role: "assistant",
+        text: "Saved! " + parts.join(" "),
+      });
     },
-    [updateMessage, addRecord, addMessage, createInvoice]
+    [updateMessage, addRecord, addMessage, createInvoice, addReminder]
   );
 
   /* ---------- Edit intent ---------- */
@@ -267,23 +284,24 @@ export default function VoiceAssistantScreen() {
         "edited"
       );
 
-      const invoiceIntent = editIntents.find(
-        (i) => i.intent === "GENERATE_INVOICE"
-      );
+      const invoiceIntent = editIntents.find((i) => i.intent === "GENERATE_INVOICE");
+      const reminderIntent = editIntents.find((i) => i.intent === "SET_REMINDER");
+      const parts: string[] = [];
+
       if (invoiceIntent) {
         const inv = createInvoice(invoiceIntent.entities, msg.detectedLang || updatedData.language);
-        addMessage({
-          role: "assistant",
-          text: `Saved! Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`,
-        });
-      } else {
-        addMessage({
-          role: "assistant",
-          text: "Saved the edited intent!",
-        });
+        parts.push(`Invoice ${inv.invoiceNumber} created for ${inv.clientName} — ${inv.currency === "EUR" ? "\u20AC" : "$"}${inv.total.toFixed(2)}. View it in the Invoices tab.`);
       }
+      if (reminderIntent) {
+        const data = buildReminderFromEntities(reminderIntent.entities);
+        const rem = addReminder(data);
+        parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
+      }
+      if (parts.length === 0) parts.push("The edited intent has been recorded.");
+
+      addMessage({ role: "assistant", text: "Saved! " + parts.join(" ") });
     },
-    [editIntents, updateMessage, addRecord, addMessage, createInvoice]
+    [editIntents, updateMessage, addRecord, addMessage, createInvoice, addReminder]
   );
 
   const handleCancelEdit = useCallback(
