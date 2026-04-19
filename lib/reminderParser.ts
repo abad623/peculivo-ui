@@ -144,13 +144,20 @@ export function buildReminderFromEntities(entities: Record<string, string>) {
     return "";
   };
 
-  const dateRaw = findKey("date", "datum", "when", "wann", "day", "tag");
+  const dateRaw = findKey("date", "datum", "when", "wann", "day", "tag", "time");
   const timeRaw = findKey("time", "zeit", "uhrzeit", "hour");
-  const description = findKey("reason", "description", "topic", "task", "action", "grund", "beschreibung", "aufgabe") || "Reminder";
-  const contact = findKey("contact", "client", "name", "kunde", "kontakt");
+  const contact = findKey("contact", "client", "client_name", "name", "kunde", "kontakt", "person");
+  const description = findKey("reason", "description", "topic", "task", "action", "project_name", "project", "subject", "grund", "beschreibung", "aufgabe", "betreff") || "Reminder";
+
+  // Build a rich title that includes the contact if not already in description
+  let title = description;
+  if (contact && !description.toLowerCase().includes(contact.toLowerCase())) {
+    title = `${description} (${contact})`;
+  }
+  if (title.length > 60) title = title.slice(0, 60) + "...";
 
   return {
-    title: description.length > 50 ? description.slice(0, 50) + "..." : description,
+    title,
     description,
     date: parseDate(dateRaw),
     time: parseTime(timeRaw),
