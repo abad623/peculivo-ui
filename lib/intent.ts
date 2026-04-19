@@ -62,8 +62,27 @@ export async function classifyIntent(
     throw new Error("Intent API returned non-JSON response");
   }
 
-  const parsed = JSON.parse(jsonMatch[0]) as IntentResponse;
-  console.log("[Intent API] parsed result:", JSON.stringify(parsed));
+  let raw = jsonMatch[0];
+  let parsed: IntentResponse;
+
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // Qwen sometimes outputs literal newlines or unescaped chars inside JSON strings
+    // Fix: escape newlines inside string values, remove trailing commas
+    raw = raw
+      .replace(/:\s*"([^"]*)"/gs, (_, val) =>
+        ': "' + val.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t") + '"'
+      )
+      .replace(/,\s*([}\]])/g, "$1"); // trailing commas
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error("Intent API returned invalid JSON");
+    }
+  }
+
   if (!parsed.intents || !Array.isArray(parsed.intents)) {
     throw new Error("Invalid intent response format");
   }
