@@ -51,20 +51,12 @@ function detectLanguage(text: string): string {
 }
 
 const INTENT_COLORS: Record<string, string> = {
-  ADD_CONTACT: "#4caf50",
-  UPDATE_CONTACT: "#2196f3",
-  LOG_ACTIVITY: "#9c27b0",
-  LOG_TIME: "#ff9800",
   CREATE_PROJECT: "#00bcd4",
   UPDATE_PROJECT: "#3f51b5",
   GENERATE_INVOICE: "#e91e63",
   SEND_INVOICE: "#f44336",
-  GENERATE_CONTRACT: "#607d8b",
   SET_REMINDER: "#ffc107",
-  MARK_PAYMENT: "#4caf50",
   SEND_PAYMENT_REMINDER: "#ff5722",
-  QUERY: "#795548",
-  UNKNOWN: "#9e9e9e",
 };
 
 /* ------------------------------------------------------------------ */

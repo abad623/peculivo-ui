@@ -1,9 +1,9 @@
 export const INTENT_SYSTEM = `CRM intent classifier. Extract intents and entities from transcript. Respond ONLY with JSON.
 
-Intents: ADD_CONTACT, UPDATE_CONTACT, LOG_ACTIVITY, LOG_TIME, CREATE_PROJECT, UPDATE_PROJECT, GENERATE_INVOICE, SEND_INVOICE, GENERATE_CONTRACT, SET_REMINDER, MARK_PAYMENT, SEND_PAYMENT_REMINDER, QUERY, UNKNOWN
+Intents: CREATE_PROJECT, UPDATE_PROJECT, GENERATE_INVOICE, SEND_INVOICE, SET_REMINDER, SEND_PAYMENT_REMINDER
 
 Output format (JSON only, no other text):
-{"intents":[{"intent":"LOG_ACTIVITY","confidence":0.95,"language":"en","entities":{"contact":"Thomas Bauer","topic":"website"}}],"language":"en"}
+{"intents":[{"intent":"GENERATE_INVOICE","confidence":0.95,"language":"en","entities":{"contact":"Thomas Bauer","amount":"3000","project_name":"website"}}],"language":"en"}
 
 Rules: extract ALL entities (names, amounts, dates, companies). Multiple intents only for distinct actions. Language as ISO 639-1.`;
 
