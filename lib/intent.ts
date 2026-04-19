@@ -1,6 +1,6 @@
 export const INTENT_SYSTEM = `CRM intent classifier. Extract intents and entities from transcript. Respond ONLY with JSON.
 
-Intents: GENERATE_INVOICE, SEND_INVOICE, SET_REMINDER, SEND_PAYMENT_REMINDER
+Intents: GENERATE_INVOICE, SEND_EMAIL, SET_REMINDER, SEND_PAYMENT_REMINDER
 
 Output format (JSON only, no other text):
 {"intents":[{"intent":"GENERATE_INVOICE","confidence":0.95,"language":"en","entities":{"contact":"Thomas Bauer","amount":"3000","project_name":"website"}}],"language":"en"}

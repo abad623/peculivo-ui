@@ -52,7 +52,7 @@ function detectLanguage(text: string): string {
 
 const INTENT_COLORS: Record<string, string> = {
   GENERATE_INVOICE: "#e91e63",
-  SEND_INVOICE: "#f44336",
+  SEND_EMAIL: "#f44336",
   SET_REMINDER: "#ffc107",
   SEND_PAYMENT_REMINDER: "#ff5722",
 };
@@ -223,15 +223,11 @@ export default function VoiceAssistantScreen() {
       const reminderIntent = msg.intentData.intents.find(
         (i) => i.intent === "SET_REMINDER"
       );
-      // Detect email request: SEND_INVOICE or transcript mentions email/contact
-      const sendInvoiceIntent = msg.intentData.intents.find(
-        (i) => i.intent === "SEND_INVOICE"
+      // Detect email request
+      const emailIntent = msg.intentData.intents.find(
+        (i) => i.intent === "SEND_EMAIL"
       );
-      const transcriptLower = (msg.transcript || "").toLowerCase();
-      const isEmailRequest =
-        sendInvoiceIntent ||
-        /\b(send|write|draft|compose|schreib|sende|schick|email|e-mail|mail)\b/i.test(transcriptLower) &&
-        /\b(email|e-mail|mail)\b/i.test(transcriptLower);
+      const isEmailRequest = !!emailIntent;
 
       const parts: string[] = [];
 
@@ -302,7 +298,7 @@ export default function VoiceAssistantScreen() {
 
       const invoiceIntent = editIntents.find((i) => i.intent === "GENERATE_INVOICE");
       const reminderIntent = editIntents.find((i) => i.intent === "SET_REMINDER");
-      const sendInvoiceEdit = editIntents.find((i) => i.intent === "SEND_INVOICE");
+      const emailEditIntent = editIntents.find((i) => i.intent === "SEND_EMAIL");
       const parts: string[] = [];
 
       if (invoiceIntent) {
@@ -315,12 +311,7 @@ export default function VoiceAssistantScreen() {
         parts.push(`Reminder set for ${rem.date} at ${rem.time}: "${rem.title}". View it in the Calendar tab.`);
       }
 
-      const transcriptLower2 = (msg.transcript || "").toLowerCase();
-      const isEmailEdit =
-        sendInvoiceEdit ||
-        (/\b(send|write|draft|compose|schreib|sende|schick)\b/.test(transcriptLower2) &&
-         /\b(email|e-mail|mail)\b/.test(transcriptLower2));
-      if (isEmailEdit) {
+      if (emailEditIntent) {
         const allEnt = editIntents.reduce((a, i) => ({ ...a, ...(i.entities || {}) }), {} as Record<string, string>);
         const contact = allEnt.contact || allEnt.client || allEnt.name || "Client";
         openComposer(contact, msg.transcript || "", allEnt.email);

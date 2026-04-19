@@ -12,7 +12,7 @@ import type { IntentRecord } from "@/lib/airtable";
 
 const INTENT_COLORS: Record<string, string> = {
   GENERATE_INVOICE: "#e91e63",
-  SEND_INVOICE: "#f44336",
+  SEND_EMAIL: "#f44336",
   SET_REMINDER: "#ffc107",
   SEND_PAYMENT_REMINDER: "#ff5722",
 };
