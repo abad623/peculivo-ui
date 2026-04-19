@@ -51,8 +51,6 @@ function detectLanguage(text: string): string {
 }
 
 const INTENT_COLORS: Record<string, string> = {
-  CREATE_PROJECT: "#00bcd4",
-  UPDATE_PROJECT: "#3f51b5",
   GENERATE_INVOICE: "#e91e63",
   SEND_INVOICE: "#f44336",
   SET_REMINDER: "#ffc107",
