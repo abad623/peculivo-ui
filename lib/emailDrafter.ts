@@ -43,19 +43,42 @@ export async function draftEmail(
   else if (data?.response) content = data.response;
   else content = JSON.stringify(data);
 
-  // Parse JSON from response
+  // Parse JSON from response — Qwen often puts literal newlines inside
+  // JSON string values which makes JSON.parse fail, so we fix them first.
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     return { subject: `Email to ${contactName}`, body: content };
   }
 
+  let raw = jsonMatch[0];
+
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
+    // First try direct parse
+    const parsed = JSON.parse(raw);
     return {
       subject: parsed.subject || `Email to ${contactName}`,
       body: parsed.body || content,
     };
   } catch {
-    return { subject: `Email to ${contactName}`, body: content };
+    // Fix literal newlines inside JSON string values
+    raw = raw.replace(/:\s*"([^"]*)"/gs, (_, val) => {
+      return ': "' + val.replace(/\n/g, "\\n").replace(/\r/g, "\\r") + '"';
+    });
+
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        subject: parsed.subject || `Email to ${contactName}`,
+        body: (parsed.body || content).replace(/\\n/g, "\n"),
+      };
+    } catch {
+      // Last resort: extract subject and body with regex
+      const subjectMatch = content.match(/"subject"\s*:\s*"([^"]*?)"/);
+      const bodyMatch = content.match(/"body"\s*:\s*"([\s\S]*?)"\s*\}?\s*$/);
+      return {
+        subject: subjectMatch?.[1] || `Email to ${contactName}`,
+        body: bodyMatch?.[1]?.replace(/\\n/g, "\n") || content,
+      };
+    }
   }
 }
