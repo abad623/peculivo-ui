@@ -249,7 +249,7 @@ export default function VoiceAssistantScreen() {
           {} as Record<string, string>
         );
         const contact =
-          allEntities.contact || allEntities.client || allEntities.name || "Client";
+          allEntities.contact || allEntities.recipient || allEntities.client || allEntities.client_name || allEntities.name || allEntities.kunde || allEntities.kontakt || "Client";
         const emailAddr = allEntities.email;
 
         // Open email composer popup via global function
